@@ -21,10 +21,9 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geo in
             let rowCount = isLandscape ? 2 : 4
-            let rowGapCount = rowCount - 1
 
-            // Height available for actual rows after outer gutters + inter-row gutters
-            let availableHeight = geo.size.height - (gutter * 2) - (gutter * CGFloat(rowGapCount))
+            // Height available for rows after gutters
+            let availableHeight = geo.size.height - gutter * CGFloat(rowCount - 1)
 
             VStack(spacing: gutter) {
                 if isLandscape {
@@ -57,7 +56,6 @@ struct ContentView: View {
                     )
                 }
             }
-            .padding(.all, gutter)
         }
         .onAppear {
             lightImpact.prepare()
@@ -75,14 +73,11 @@ struct ContentView: View {
                         Button {
                             lightImpact.prepare()
                             lightImpact.impactOccurred()
-
                             selectedQuantity = n
-                            withAnimation(.snappy) {
-                                proxy.scrollTo(n, anchor: .leading)
-                            }
+                            scrollQuantityToLeading?(n)
                         } label: {
                             Text("\(n)")
-                                .font(.system(size: 54, weight: .semibold, design: .rounded))
+                                .font(.system(size: 54, weight: .bold, design: .rounded))
                                 .frame(width: rowHeight, height: rowHeight)
                         }
                         .buttonStyle(BidButtonStyle(isSelected: selectedQuantity == n))
@@ -117,19 +112,18 @@ struct ContentView: View {
 
     private func equalWidthRow(items: [RowItem], rowHeight: CGFloat, containerWidth: CGFloat) -> some View {
         let count = items.count
-        let gapCount = max(0, count - 1)
 
-        // Total horizontal space for buttons after outer gutters and inner gutters between buttons
-        let availableWidth = containerWidth - (gutter * 2) - (gutter * CGFloat(gapCount))
+        // Total horizontal space for buttons after outer and inner gutters
+        let availableWidth = containerWidth - gutter * CGFloat(count + 1)
         let buttonWidth = availableWidth / CGFloat(count)
 
         return HStack(spacing: gutter) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 switch item {
-                case .pip(let pip):
-                    pipCell(pip: pip, width: buttonWidth, height: rowHeight)
-                case .reset:
-                    resetCell(width: buttonWidth, height: rowHeight)
+                    case .pip(let pip):
+                        pipCell(pip: pip, width: buttonWidth, height: rowHeight)
+                    case .reset:
+                        resetCell(width: buttonWidth, height: rowHeight)
                 }
             }
         }
