@@ -82,7 +82,7 @@ struct ContentView: View {
                             }
                         } label: {
                             Text("\(n)")
-                                .font(.system(size: 64, weight: .semibold, design: .rounded))
+                                .font(.system(size: 54, weight: .semibold, design: .rounded))
                                 .frame(width: rowHeight, height: rowHeight)
                         }
                         .buttonStyle(BidButtonStyle(isSelected: selectedQuantity == n))
@@ -142,12 +142,19 @@ struct ContentView: View {
             lightImpact.impactOccurred()
             selectedPip = pip
         } label: {
-            Image(systemName: "die.face.\(pip)")
-                .font(.system(size: 100, weight: .semibold))
-                .frame(width: width, height: height)
-                .contentShape(Rectangle())
+            ZStack {
+                if selectedPip == pip {
+                    RoundedRectangle(cornerRadius: width * 0.18, style: .continuous)
+                        .fill(Color(red: 0.6, green: 0.8, blue: 0.5))
+                }
+                Image(systemName: "die.face.\(pip)")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundStyle(Color.primary)
+            }
+            .frame(width: width, height: height)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(BidButtonStyle(isSelected: selectedPip == pip))
         .accessibilityLabel("Pip \(pip)")
     }
 
@@ -176,21 +183,17 @@ struct BidButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(isSelected ? Color(.systemBackground) : Color.primary)
+            .foregroundStyle(Color.primary)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Color(red: 0.0, green: 0.4, blue: 0.15) : Color(.secondarySystemBackground))
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(isSelected ? Color(red: 0.6, green: 0.8, blue: 0.5) : Color(.secondarySystemBackground))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(
-                        isReset ? Color.secondary :
-                        (isSelected ? Color.clear : Color.secondary.opacity(0.4)),
-                        lineWidth: 1
-                    )
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .strokeBorder(Color(.black), lineWidth: 14)
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.05), value: configuration.isPressed)
     }
 }
 
