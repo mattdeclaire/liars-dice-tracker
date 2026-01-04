@@ -68,8 +68,9 @@ struct ContentView: View {
     private func numeralsRow(rowHeight: CGFloat) -> some View {
         return ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: gutter) {
+                LazyHStack(spacing: 0) {
                     ForEach(1...maxQuantity, id: \.self) { n in
+                        Color.clear.frame(width: gutter)
                         Button {
                             lightImpact.prepare()
                             lightImpact.impactOccurred()
@@ -89,7 +90,6 @@ struct ContentView: View {
                         }
                     }
                 }
-                .padding(.horizontal, gutter)  // 16pt gutter inside the scroll row too
             }
             .onAppear {
                 scrollQuantityToLeading = { n in
