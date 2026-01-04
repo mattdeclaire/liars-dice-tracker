@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let maxQuantity = 300
+    // “Infinite” numerals
+    @State private var maxQuantity: Int = 200
+    private let extendThreshold = 30
+    private let extendBy = 200
 
     @State private var selectedQuantity: Int? = nil
     @State private var selectedPip: Int? = nil
@@ -10,85 +13,64 @@ struct ContentView: View {
     private let lightImpact = UIImpactFeedbackGenerator(style: .light)
     private let mediumImpact = UIImpactFeedbackGenerator(style: .medium)
 
+    private let gutter: CGFloat = 16
+
     @Environment(\.verticalSizeClass) private var vSize
     private var isLandscape: Bool { vSize == .compact }
 
     var body: some View {
-        Group {
-            if isLandscape {
-                landscapeLayout
-            } else {
-                portraitLayout
+        GeometryReader { geo in
+            let rowCount = isLandscape ? 2 : 4
+            let rowGapCount = rowCount - 1
+
+            // Height available for actual rows after outer gutters + inter-row gutters
+            let availableHeight = geo.size.height - (gutter * 2) - (gutter * CGFloat(rowGapCount))
+
+            VStack(spacing: gutter) {
+                if isLandscape {
+                    numeralsRow(rowHeight: availableHeight * 0.3)
+
+                    equalWidthRow(
+                        items: [.pip(2), .pip(3), .pip(4), .pip(5), .pip(6), .reset],
+                        rowHeight: availableHeight * 0.7,
+                        containerWidth: geo.size.width
+                    )
+                } else {
+                    numeralsRow(rowHeight: availableHeight * 0.15)
+                    
+                    let pipHeight = availableHeight * 0.25
+                    // Rows 2–4: two items per row, equal width
+                    equalWidthRow(
+                        items: [.pip(2), .pip(3)],
+                        rowHeight: pipHeight,
+                        containerWidth: geo.size.width
+                    )
+                    equalWidthRow(
+                        items: [.pip(4), .pip(5)],
+                        rowHeight: pipHeight,
+                        containerWidth: geo.size.width
+                    )
+                    equalWidthRow(
+                        items: [.pip(6), .reset],
+                        rowHeight: pipHeight,
+                        containerWidth: geo.size.width
+                    )
+                }
             }
+            .padding(.all, gutter)
         }
-        .padding(.horizontal, 16)
         .onAppear {
             lightImpact.prepare()
             mediumImpact.prepare()
         }
     }
 
-    // MARK: - Portrait (3 rows)
-    private var portraitLayout: some View {
-        VStack(spacing: 16) {
-            quantityRow(height: 72)
+    // MARK: - Numerals row (denser buttons)
 
-            HStack(spacing: 12) { pipButton(2, minHeight: 56, iconSize: 26)
-                                 pipButton(3, minHeight: 56, iconSize: 26)
-                                 pipButton(4, minHeight: 56, iconSize: 26) }
-
-            HStack(spacing: 12) { pipButton(5, minHeight: 56, iconSize: 26)
-                                 pipButton(6, minHeight: 56, iconSize: 26)
-                                 resetButton(minHeight: 56, iconSize: 22) }
-
-            Spacer()
-        }
-        .padding(.top, 8)
-    }
-
-    // MARK: - Landscape (2 rows, second row must fit without scrolling)
-    private var landscapeLayout: some View {
-        VStack(spacing: 16) {
-            quantityRow(height: 72)
-
-            GeometryReader { geo in
-                let spacing: CGFloat = 10
-                // total spacing between 6 buttons = 5 gaps
-                let totalGap = spacing * 5
-                let available = geo.size.width - totalGap
-                let rawSide = floor(available / 6)
-
-                // Keep tap targets legal. If this ever can't fit, the device is *extremely* small.
-                let side = max(44, rawSide)
-
-                // Scale icon sizes with the button side
-                let dieIcon = max(18, min(28, side * 0.48))
-                let resetIcon = max(16, min(24, side * 0.40))
-
-                HStack(spacing: spacing) {
-                    pipButton(2, fixedSide: side, iconSize: dieIcon)
-                    pipButton(3, fixedSide: side, iconSize: dieIcon)
-                    pipButton(4, fixedSide: side, iconSize: dieIcon)
-                    pipButton(5, fixedSide: side, iconSize: dieIcon)
-                    pipButton(6, fixedSide: side, iconSize: dieIcon)
-                    resetButton(fixedSide: side, iconSize: resetIcon)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-            // Give the geometry reader a predictable height equal to the computed button side-ish.
-            // 64 is a safe default; actual buttons are fixed by computed `side`.
-            .frame(height: 72)
-
-            Spacer()
-        }
-        .padding(.top, 8)
-    }
-
-    // MARK: - Numerals
-    private func quantityRow(height: CGFloat) -> some View {
-        ScrollViewReader { proxy in
+    private func numeralsRow(rowHeight: CGFloat) -> some View {
+        return ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 10) {
+                LazyHStack(spacing: gutter) {
                     ForEach(1...maxQuantity, id: \.self) { n in
                         Button {
                             lightImpact.prepare()
@@ -100,83 +82,92 @@ struct ContentView: View {
                             }
                         } label: {
                             Text("\(n)")
-                                .font(.system(size: 22, weight: .semibold, design: .rounded))
-                                .frame(minWidth: 56, minHeight: 56)
+                                .font(.system(size: 64, weight: .semibold, design: .rounded))
+                                .frame(width: rowHeight, height: rowHeight)
                         }
                         .buttonStyle(BidButtonStyle(isSelected: selectedQuantity == n))
                         .id(n)
+                        .onAppear {
+                            if n >= maxQuantity - extendThreshold {
+                                maxQuantity += extendBy
+                            }
+                        }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.horizontal, gutter)  // 16pt gutter inside the scroll row too
             }
             .onAppear {
                 scrollQuantityToLeading = { n in
-                    withAnimation(.snappy) { proxy.scrollTo(n, anchor: .leading) }
+                    withAnimation(.snappy) {
+                        proxy.scrollTo(n, anchor: .leading)
+                    }
                 }
                 proxy.scrollTo(1, anchor: .leading)
             }
         }
-        .frame(height: height)
+        .frame(height: rowHeight)
     }
 
-    // MARK: - Pips / Reset (portrait uses flexible width; landscape uses fixed side)
-    private func pipButton(_ pip: Int, minHeight: CGFloat, iconSize: CGFloat) -> some View {
+    // MARK: - Equal-width pip/reset rows
+
+    private enum RowItem {
+        case pip(Int)
+        case reset
+    }
+
+    private func equalWidthRow(items: [RowItem], rowHeight: CGFloat, containerWidth: CGFloat) -> some View {
+        let count = items.count
+        let gapCount = max(0, count - 1)
+
+        // Total horizontal space for buttons after outer gutters and inner gutters between buttons
+        let availableWidth = containerWidth - (gutter * 2) - (gutter * CGFloat(gapCount))
+        let buttonWidth = availableWidth / CGFloat(count)
+
+        return HStack(spacing: gutter) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                switch item {
+                case .pip(let pip):
+                    pipCell(pip: pip, width: buttonWidth, height: rowHeight)
+                case .reset:
+                    resetCell(width: buttonWidth, height: rowHeight)
+                }
+            }
+        }
+        .frame(height: rowHeight)
+    }
+
+    private func pipCell(pip: Int, width: CGFloat, height: CGFloat) -> some View {
         Button {
             lightImpact.prepare()
             lightImpact.impactOccurred()
             selectedPip = pip
         } label: {
             Image(systemName: "die.face.\(pip)")
-                .font(.system(size: iconSize, weight: .semibold))
-                .frame(maxWidth: .infinity, minHeight: minHeight)
+                .font(.system(size: 100, weight: .semibold))
+                .frame(width: width, height: height)
+                .contentShape(Rectangle())
         }
         .buttonStyle(BidButtonStyle(isSelected: selectedPip == pip))
         .accessibilityLabel("Pip \(pip)")
     }
 
-    private func pipButton(_ pip: Int, fixedSide: CGFloat, iconSize: CGFloat) -> some View {
+    private func resetCell(width: CGFloat, height: CGFloat) -> some View {
         Button {
-            lightImpact.prepare()
-            lightImpact.impactOccurred()
-            selectedPip = pip
+            mediumImpact.prepare()
+            mediumImpact.impactOccurred()
+            selectedQuantity = nil
+            selectedPip = nil
+            scrollQuantityToLeading?(1)
         } label: {
-            Image(systemName: "die.face.\(pip)")
-                .font(.system(size: iconSize, weight: .semibold))
-                .frame(width: fixedSide, height: fixedSide)
-        }
-        .buttonStyle(BidButtonStyle(isSelected: selectedPip == pip))
-        .accessibilityLabel("Pip \(pip)")
-    }
-
-    private func resetButton(minHeight: CGFloat, iconSize: CGFloat) -> some View {
-        Button(action: reset) {
             Image(systemName: "arrow.counterclockwise")
-                .font(.system(size: iconSize, weight: .semibold))
-                .frame(maxWidth: .infinity, minHeight: minHeight)
+                .font(.system(size: 80, weight: .semibold))
+                .frame(width: width, height: height)
+                .contentShape(Rectangle())
         }
         .buttonStyle(BidButtonStyle(isSelected: false, isReset: true))
         .accessibilityLabel("Reset")
     }
 
-    private func resetButton(fixedSide: CGFloat, iconSize: CGFloat) -> some View {
-        Button(action: reset) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.system(size: iconSize, weight: .semibold))
-                .frame(width: fixedSide, height: fixedSide)
-        }
-        .buttonStyle(BidButtonStyle(isSelected: false, isReset: true))
-        .accessibilityLabel("Reset")
-    }
-
-    // MARK: - Actions
-    private func reset() {
-        mediumImpact.prepare()
-        mediumImpact.impactOccurred()
-
-        selectedQuantity = nil
-        selectedPip = nil
-        scrollQuantityToLeading?(1)
-    }
 }
 
 struct BidButtonStyle: ButtonStyle {
@@ -188,7 +179,7 @@ struct BidButtonStyle: ButtonStyle {
             .foregroundStyle(isSelected ? Color(.systemBackground) : Color.primary)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Color.primary : Color(.secondarySystemBackground))
+                    .fill(isSelected ? Color(red: 0.0, green: 0.4, blue: 0.15) : Color(.secondarySystemBackground))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
