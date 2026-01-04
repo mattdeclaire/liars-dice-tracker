@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct Liar_s_Dice_TrackerApp: App {
+struct LiarsDiceTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
