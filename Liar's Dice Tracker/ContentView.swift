@@ -13,7 +13,7 @@ struct ContentView: View {
     private let lightImpact = UIImpactFeedbackGenerator(style: .light)
     private let mediumImpact = UIImpactFeedbackGenerator(style: .medium)
 
-    private let gutter: CGFloat = 16
+    private let gutter: CGFloat = 24
 
     @Environment(\.verticalSizeClass) private var vSize
     private var isLandscape: Bool { vSize == .compact }
@@ -22,8 +22,8 @@ struct ContentView: View {
         GeometryReader { geo in
             let rowCount = isLandscape ? 2 : 4
 
-            // Height available for rows after gutters
-            let availableHeight = geo.size.height - gutter * CGFloat(rowCount - 1)
+            // Height available for rows after gutters (one above each row)
+            let availableHeight = geo.size.height - gutter * CGFloat(rowCount)
 
             VStack(spacing: gutter) {
                 if isLandscape {
@@ -56,6 +56,7 @@ struct ContentView: View {
                     )
                 }
             }
+            .padding(.top, gutter)
         }
         .onAppear {
             lightImpact.prepare()
