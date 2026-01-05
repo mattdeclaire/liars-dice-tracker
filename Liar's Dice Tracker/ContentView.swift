@@ -71,23 +71,7 @@ struct ContentView: View {
                 LazyHStack(spacing: 0) {
                     ForEach(1...maxQuantity, id: \.self) { n in
                         Color.clear.frame(width: gutter)
-                        Button {
-                            lightImpact.prepare()
-                            lightImpact.impactOccurred()
-                            selectedQuantity = n
-                            scrollQuantityToLeading?(n)
-                        } label: {
-                            Text("\(n)")
-                                .font(.system(size: 54, weight: .bold, design: .rounded))
-                                .frame(width: rowHeight, height: rowHeight)
-                        }
-                        .buttonStyle(BidButtonStyle(isSelected: selectedQuantity == n))
-                        .id(n)
-                        .onAppear {
-                            if n >= maxQuantity - extendThreshold {
-                                maxQuantity += extendBy
-                            }
-                        }
+                        numeralCell(num: n, width: rowHeight)
                     }
                 }
             }
@@ -129,6 +113,26 @@ struct ContentView: View {
         }
         .frame(height: rowHeight)
     }
+    
+    private func numeralCell(num: Int, width: CGFloat) -> some View {
+        Button {
+            lightImpact.prepare()
+            lightImpact.impactOccurred()
+            selectedQuantity = num
+            scrollQuantityToLeading?(num)
+        } label: {
+            Text("\(num)")
+                .font(.system(size: 54, weight: .bold, design: .rounded))
+                .frame(width: width, height: width)
+        }
+        .buttonStyle(AppButtonStyle(isSelected: selectedQuantity == num))
+        .id(num)
+        .onAppear {
+            if num >= maxQuantity - extendThreshold {
+                maxQuantity += extendBy
+            }
+        }
+    }
 
     private func pipCell(pip: Int, width: CGFloat, height: CGFloat) -> some View {
         Button {
@@ -138,8 +142,9 @@ struct ContentView: View {
         } label: {
             ZStack {
                 if selectedPip == pip {
-                    RoundedRectangle(cornerRadius: width * 0.18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 0, style: .continuous)
                         .fill(Color(red: 0.6, green: 0.8, blue: 0.5))
+                        .padding(10)
                 }
                 Image(systemName: "die.face.\(pip)")
                     .resizable()
@@ -149,6 +154,7 @@ struct ContentView: View {
             .frame(width: width, height: height)
             .contentShape(Rectangle())
         }
+        .buttonStyle(AppButtonStyle(isSelected: selectedPip == pip))
         .accessibilityLabel("Pip \(pip)")
     }
 
@@ -165,15 +171,14 @@ struct ContentView: View {
                 .frame(width: width, height: height)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(BidButtonStyle(isSelected: false, isReset: true))
+        .buttonStyle(AppButtonStyle())
         .accessibilityLabel("Reset")
     }
 
 }
 
-struct BidButtonStyle: ButtonStyle {
-    let isSelected: Bool
-    var isReset: Bool = false
+struct AppButtonStyle: ButtonStyle {
+    var isSelected: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -186,8 +191,8 @@ struct BidButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .strokeBorder(Color(.black), lineWidth: 14)
             )
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.05), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
 
